@@ -13,3 +13,6 @@
 
 # We may create tarballs, don't include those
 /*.tar.gz
+
+data.json
+output_txt_file.txt
