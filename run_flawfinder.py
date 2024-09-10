@@ -16,7 +16,7 @@ def analyze_file_with_repo_scraper(file_path: pathlib.Path, output_txt_file: pat
         stdout, stderr = process.communicate()
         return stdout.decode()
     except Exception as e:
-        return f"Error running repo-scraper: {str(e)}"
+        return f"Error running flawfinder: {str(e)}"
 
 
 def prepare_repository(repo_url=None, zip_file_name=None, token=None):
@@ -45,10 +45,12 @@ def main(repo_url=None, zip_file_name=None, json_file=None, verbose=None, output
 
     if directory:
         extract_archives_in(directory)
-        analyze_file_with_repo_scraper(directory, verbose=verbose, output_txt_file=output_txt_file)
+        result = analyze_file_with_repo_scraper(directory, verbose=verbose, output_txt_file=output_txt_file)
+        print(result)
         remove_all_files(directory)
 
-        parse_flawfinder_output(output_file=json_file, input_file=output_txt_file)
+        parsed_results = parse_flawfinder_output(output_file=json_file, input_file=output_txt_file)
+        print("Parsed Results: ", parsed_results)
 
 
 if __name__ == "__main__":
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     # parser.add_argument('--token', type=str, help='GitHub Personal Access Token for private repositories.')
     parser.add_argument('--input-zip', type=pathlib.Path, help='Path to the input zip.')
     parser.add_argument('--output', type=pathlib.Path, help='Path to save the analysis results in JSON format.')
-    parser.add_argument('--verbose', type=int, choices=range(0, 6), default=5, help='Set verbosity level (0-5)')
+    parser.add_argument('--verbose', type=int, choices=range(0, 6), default=2, help='Set verbosity level (0-5)')
 
     args = parser.parse_args()
     MAIN_DIR: Final[pathlib.Path] = pathlib.Path(__file__).parent
