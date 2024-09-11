@@ -11,9 +11,7 @@ from Run_modules.run_modules import check_name, clone_repo, RepositoryNotFoundEr
 
 
 def analyze_file_with_repo_scraper(file_path: pathlib.Path, output_txt_file: pathlib.Path, verbose=5):
-    parsed_results = {}
-
-    unique_results = {level: set() for level in range(verbose + 1)}
+    parsed_results = []
 
     for level in range(verbose + 1):
         print(f"Analyzing for risk level {level}...")
@@ -32,15 +30,12 @@ def analyze_file_with_repo_scraper(file_path: pathlib.Path, output_txt_file: pat
             print(f"Error running flawfinder for level {level}: {str(e)}")
             continue
 
-        results = parse_flawfinder_output(output_txt_file)
+        results = parse_flawfinder_output(output_txt_file, level)
 
         for result in results:
             unique_key = (result["file_path"], result["line_number"])
-            if unique_key not in unique_results[level]:
-                unique_results[level].add(unique_key)
-                if f"risk_level_{level}" not in parsed_results:
-                    parsed_results[f"risk_level_{level}"] = []
-                parsed_results[f"risk_level_{level}"].append(result)
+            if unique_key not in parsed_results:
+                parsed_results.append(result)
 
     return parsed_results
 
@@ -76,7 +71,7 @@ def main(repo_url=None, zip_file_name=None, json_file=None, verbose=None, output
         remove_all_files(directory)
 
         with json_file.open('w') as outfile:
-            json.dump(result, outfile, indent=4)
+            json.dump(result, outfile, indent=2)
         print(f"Parsed Results saved to {json_file}")
 
 
