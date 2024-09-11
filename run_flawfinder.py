@@ -1,4 +1,5 @@
 import argparse
+import json
 import pathlib
 import subprocess
 import time
@@ -9,14 +10,39 @@ from Run_modules.run_modules import check_name, clone_repo, RepositoryNotFoundEr
     copy_zip_to_directory, extract_archives_in
 
 
-def analyze_file_with_repo_scraper(file_path: pathlib.Path, output_txt_file: pathlib.Path, verbose=5, ):
-    command = ['python3', 'flawfinder', '--minlevel', verbose, str(file_path), '>', str(output_txt_file)]
-    try:
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = process.communicate()
-        return stdout.decode()
-    except Exception as e:
-        return f"Error running flawfinder: {str(e)}"
+def analyze_file_with_repo_scraper(file_path: pathlib.Path, output_txt_file: pathlib.Path, verbose=5):
+    parsed_results = {}
+
+    unique_results = {level: set() for level in range(verbose + 1)}
+
+    for level in range(verbose + 1):
+        print(f"Analyzing for risk level {level}...")
+
+        command = ['flawfinder', '--minlevel', str(level), str(file_path)]
+        try:
+            with output_txt_file.open('w') as outfile:
+                process = subprocess.Popen(command, stdout=outfile, stderr=subprocess.PIPE)
+                stdout, stderr = process.communicate()
+                if stderr:
+                    print(f"Error for level {level}: {stderr.decode()}")
+                else:
+                    print(f"Analysis for level {level} completed successfully.")
+
+        except Exception as e:
+            print(f"Error running flawfinder for level {level}: {str(e)}")
+            continue
+
+        results = parse_flawfinder_output(output_txt_file)
+
+        for result in results:
+            unique_key = (result["file_path"], result["line_number"])
+            if unique_key not in unique_results[level]:
+                unique_results[level].add(unique_key)
+                if f"risk_level_{level}" not in parsed_results:
+                    parsed_results[f"risk_level_{level}"] = []
+                parsed_results[f"risk_level_{level}"].append(result)
+
+    return parsed_results
 
 
 def prepare_repository(repo_url=None, zip_file_name=None, token=None):
@@ -49,8 +75,9 @@ def main(repo_url=None, zip_file_name=None, json_file=None, verbose=None, output
         print(result)
         remove_all_files(directory)
 
-        parsed_results = parse_flawfinder_output(output_file=json_file, input_file=output_txt_file)
-        print("Parsed Results: ", parsed_results)
+        with json_file.open('w') as outfile:
+            json.dump(result, outfile, indent=4)
+        print(f"Parsed Results saved to {json_file}")
 
 
 if __name__ == "__main__":

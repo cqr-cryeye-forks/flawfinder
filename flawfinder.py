@@ -608,49 +608,59 @@ class Hit(object):
         if sarif_output:
             return
         if output_format:
-            print("<li>", end='')
+            print("<li>", end="")
         sys.stdout.write(h(self.filename))
 
         if show_columns:
-            print(":%(line)s:%(column)s:" % self, end='')
+            print(f":{self.line}:{self.column}:", end="")
         else:
-            print(":%(line)s:" % self, end='')
+            print(f":{self.line}:", end="")
+
+        # Fetching the line from the file using context manager
+        try:
+            with open(self.filename, "r") as file:
+                lines = file.readlines()
+                full_line = lines[self.line - 1].strip()  # Lines are zero-indexed
+                print(f"Vulnerability Line: {full_line}")
+        except (FileNotFoundError, IndexError) as e:
+            print(f"Error retrieving line: {e}")
 
         if output_format:
-            print(" <b>", end='')
+            print(" <b>", end="")
         # Extra space before risk level in text, makes it easier to find:
-        print("  [%(level)s]" % self, end=' ')
+        print(f"  [{self.level}]", end=" ")
         if output_format:
-            print("</b> ", end='')
-        print("(%(category)s)" % self, end=' ')
+            print("</b> ", end="")
+        print(f"({self.category})", end=" ")
         if output_format:
-            print("<i> ", end='')
-        print(h("%(name)s:" % self), end='')
-        main_text = h("%(warning)s. " % self)
+            print("<i> ", end="")
+        print(h(f"{self.name}:"), end="")
+        main_text = h(f"{self.warning}. ")
         if output_format:  # Create HTML link to CWE definitions
             main_text = link_cwe_pattern.sub(
                 r'<a href="https://cwe.mitre.org/data/definitions/\2.html">\1</a>\3',
                 main_text)
         if single_line:
-            print(main_text, end='')
+            print(main_text, end="")
             if self.suggestion:
-                print(" " + h(self.suggestion) + ".", end='')
-            print(' ' + h(self.note), end='')
+                print(f" {h(self.suggestion)}.", end="")
+            print(f" {h(self.note)}", end="")
         else:
             if self.suggestion:
-                main_text += h(self.suggestion) + ". "
+                main_text += f"{h(self.suggestion)}. "
             main_text += h(self.note)
             print()
             print_multi_line(main_text)
         if output_format:
-            print(" </i>", end='')
-            print("</li>", end='')
+            print(" </i>", end="")
+            print("</li>", end="")
         print()
         if show_context:
             if output_format:
                 print("<pre>")
             print(h(self.context_text))
             if output_format:
+                print("</pre>")
                 print("</pre>")
 
 
